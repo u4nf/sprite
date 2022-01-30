@@ -2,18 +2,17 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 from random import randint, choice
 
 #must be even
-totalGrid = 12
+totalGrid = 10
 
 #use this pallete.  If false, use 8bit colour
 spaceInvaders = True
 enlargeOutput = True
 
-firstPixel = True
 xdim = int(totalGrid /2)
 ydim = totalGrid
 maxNumOfPixels = ((xdim * ydim) / 2)
-numOfPixels = randint((int(maxNumOfPixels / 3)), maxNumOfPixels)
-usedGrid = [(-1, -1)]
+numOfPixels = randint((int(maxNumOfPixels / 2)), maxNumOfPixels)
+usedGrid = []
 
 
 #returns rgb
@@ -28,72 +27,68 @@ def getColour():
 	return [r, g, b]
 
 
+#ensures first pixel is centered
+def firstPixel():
+	pixColour = getColour()
+	usedGrid.append((xdim -1, randint(0, ydim -1)))
+	img.putpixel((usedGrid[0][0], usedGrid[0][1]), (pixColour[0], pixColour[1], pixColour[2]))
+	print('first pixel painted at ' + str(usedGrid[0][0]) + str(usedGrid[0][1]))
+
+
 #returns co-ordinates, does not care if duplicates
 def getGridAny():
-	xGrid = randint(0, xdim - 1)
-	yGrid = randint(0, ydim - 1)
+	x = randint(0, xdim - 1)
+	y = randint(0, ydim - 1)
 
-	if firstPixel:
-		xGrid = xdim -1
-
-	return xGrid, yGrid
+	return (x, y)
 
 
 #returns unique co-ordinates
 def getGridUnique():
 	isOK = False
+	while not isOK:
+		xy = getGridAny()
+		isOK = isUnused(xy)
 
-	while isOK == False:
-		tempGrid = getGridAny()
-		for i in range(0, len(usedGrid)):
-			if tempGrid[0] == usedGrid[i][0]:
-				if tempGrid[1] == usedGrid[i][1]:
-					isOK = False
-			else:
-				isOK = True
-
-	return tempGrid[0], tempGrid[1]
+	return (xy)
 
 
 #returns co-ordinates that touch each other
 def getGridTouching():
 
-	isOK = False
+	while True:
+		#select random used pixel and attempt to build off it
+		rand = randint(0, len(usedGrid) - 1)
+		x = usedGrid[rand][0]
+		y = usedGrid[rand][1]
 
-	#select random used pixel and attempt to build off it
-	rand = randint(1, len(usedGrid) - 1)
-	xcurr = usedGrid[rand][0]
-	ycurr = usedGrid[rand][1]
-
-	while not isOK:
 		#generate refernce to neighboring pixel and verify validity
 		rand = choice([-1, 0, 1])
-		if (xcurr + rand) >= 0 and (xcurr + rand) < xdim:
-			tempx = xcurr + rand
+
+		if (x + rand) >= 0 and (x + rand) < xdim:
+			tempx = x + rand
 			rand = choice([-1, 0, 1])
-			if (ycurr + rand) >= 0 and (ycurr + rand) < ydim:
-				tempy = ycurr + rand
+
+			if (y + rand) >= 0 and (y + rand) < ydim:
+				tempy = y + rand
+
+				if isUnused((tempx, tempy)):
+					return (tempx, tempy)
 
 
-				print(len(usedGrid) - 1)
-				#check if co-ords have been used
-				for i in range(0, len(usedGrid) - 1):
+#returns True if tuple xy is not in usedGrid list
+def isUnused(xy):
 
-					print(str(tempx) + ' ' + str(tempy))
-					print(usedGrid)
+	for i in range(0, len(usedGrid)):
+		if ((xy[0] == usedGrid[i][0]) and (xy[1] == usedGrid[i][1])):
+			return False
 
-					if (tempx == usedGrid[i][0]) and (tempy == usedGrid[i][1]):
-						isOK = False
-					else:
-						isOK = True
-						break
-
-	return (tempx, tempy)
+	usedGrid.append(xy)
+	return True
 
 
 #flips image and joins to create symmetry
 def complete(img):
-
 	flippedImg = img.transpose(Image.FLIP_LEFT_RIGHT)
 
 	output = Image.new(mode = "RGB", size = (totalGrid, totalGrid))
@@ -108,18 +103,16 @@ def complete(img):
 
 #initial pixel to build from
 img = Image.new(mode = "RGB", size = (xdim, ydim))
-usedGrid.append(getGridUnique())
+firstPixel()
 
 
-for i in range(0, numOfPixels):
+for i in range(0, numOfPixels - 1):
 	pixColour = getColour()
-	#curretPixel = getGridAny()
+	#currentPixel = getGridAny()
 	#currentPixel = getGridUnique()
 	currentPixel = getGridTouching()
 
-	usedGrid.append(currentPixel)
 	print('Painting pixel position ' +  str(currentPixel[0]) + ',' + str(currentPixel[1]))
 	img.putpixel((currentPixel[0], currentPixel[1]), (pixColour[0], pixColour[1], pixColour[2]))
 
 complete(img)
-
